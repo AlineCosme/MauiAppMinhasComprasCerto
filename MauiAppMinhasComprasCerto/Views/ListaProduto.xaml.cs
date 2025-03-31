@@ -8,6 +8,8 @@ public partial class ListaProduto : ContentPage
 
 {
 	ObservableCollection<Produto> lista = new ObservableCollection<Produto>();
+	private bool lst_produtos_IsRefreshing;
+
 	public ListaProduto()
 	{
 		InitializeComponent();
@@ -48,6 +50,8 @@ public partial class ListaProduto : ContentPage
 		{
 			string q = e.NewTextValue;
 
+			lst_produtos.IsRefreshing = true;
+
 			lista.Clear();
 
 			List<Produto> tmp = await App.Db.Search(q);
@@ -58,6 +62,10 @@ public partial class ListaProduto : ContentPage
 		catch (Exception ex)
 		{
 			await DisplayAlert("Ops", ex.Message, "OK");
+		}
+		finally
+		{
+			lst_produtos_IsRefreshing = false;
 		}
 
 	}
@@ -81,7 +89,7 @@ public partial class ListaProduto : ContentPage
 
 			bool confirm = await DisplayAlert("Tem Certeza?", $"Remover {p.Descricao}?", "Sim", "Não");
 
-			if(confirm)
+			if (confirm)
 			{
 				await App.Db.Delete(p.Id);
 				lista.Remove(p);
@@ -94,20 +102,64 @@ public partial class ListaProduto : ContentPage
 
 	}
 
-    private void lst_produtos_ItemSelected(object sender, SelectedItemChangedEventArgs e)
-    {
+	private void lst_produtos_ItemSelected(object sender, SelectedItemChangedEventArgs e)
+	{
 		try
 		{
 			Produto p = e.SelectedItem as Produto;
 
 			Navigation.PushAsync(new Views.EditarProduto
-			{ BindingContext = p,});
+			{ BindingContext = p, });
 		}
 
-			catch(Exception ex)
+		catch (Exception ex)
 		{
 			DisplayAlert("Ops", ex.Message, "Ok");
 		}
 
-    }
+	}
+
+	private async void lst_produtos_Refreshing(object sender, EventArgs e)
+	{
+
+		try
+		{
+			lista.Clear();
+			List<Produto> tmp = await App.Db.GetAll();
+
+			tmp.ForEach(i => lista.Add(i));
+		}
+		catch (Exception ex)
+		{
+			await DisplayAlert("Ops", ex.Message, "OK");
+		}
+		finally
+		{
+			lst_produtos_IsRefreshing = false;
+		}
+
+	}
+
+
+	private async void txt_search_categoria_TextChanged(object sender, TextChangedEventArgs e)
+	{
+
+		try
+		{
+			string q = e.NewTextValue;
+			lst_produtos.IsRefreshing = true;
+			lista.Clear();
+			List<Produto> tmp = await App.Db.Search(q);
+			tmp.ForEach(i => lista.Add(i));
+		}
+		catch (Exception ex)
+		{
+			await DisplayAlert("Ops", ex.Message, "OK");
+
+		}
+		finally
+		{
+			lst_produtos.IsRefreshing = false;
+		}
+	}
 }
